@@ -1,0 +1,5 @@
+INPUT THE PROXY LIST OF CLASH.
+FOR EXAMPLE:
+------------------------------
+proxies:
+  - { name: PROXY, type: trojan, server: EXAMPLE.COM, port: 10086, password: XXXXXXXX, udp: true, sni: XXXXXXX, skip-cert-verify: true }
