@@ -8,8 +8,8 @@ import (
 
 	"github.com/panjf2000/ants/v2"
 
-	"v2board_cc/config"
-	"v2board_cc/utils"
+	"github.com/thank243/v2board_cc/config"
+	"github.com/thank243/v2board_cc/utils"
 )
 
 func main() {
@@ -37,7 +37,7 @@ func main() {
 	counts := 0
 	var (
 		alivePlist []*utils.Nodes
-		status int
+		status     int
 	)
 
 	pool1, _ := ants.NewPoolWithFunc(config.Cfg.Connections/3, func(i interface{}) {

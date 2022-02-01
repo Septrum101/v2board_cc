@@ -1,4 +1,4 @@
-module v2board_cc
+module github.com/thank243/v2board_cc
 
 go 1.17
 
