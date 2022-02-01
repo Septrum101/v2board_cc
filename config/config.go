@@ -2,13 +2,13 @@ package config
 
 import (
 	"fmt"
-	"github.com/gofrs/uuid"
-	"gopkg.in/yaml.v3"
 	"io/ioutil"
 	"strings"
 
 	"github.com/Dreamacro/clash/adapter"
 	C "github.com/Dreamacro/clash/constant"
+	"github.com/gofrs/uuid"
+	"gopkg.in/yaml.v3"
 )
 
 type RawConfig struct {
@@ -19,7 +19,6 @@ type CFG struct {
 	V2boardDomain string `yaml:"v2BoardDomain"`
 	OriginIP      string `yaml:"originIP"`
 	Connections   int    `yaml:"connections"`
-
 }
 
 var Cfg CFG

