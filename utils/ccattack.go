@@ -91,7 +91,6 @@ func CCAttack(p *Nodes, counts *int, status *int) (aliveProxies *Nodes, err erro
 		buf map[string]interface{}
 	)
 	_ = json.Unmarshal(resp.Body(), &buf)
-
 	switch {
 	case resp.StatusCode() == 502:
 		*status = resp.StatusCode()
@@ -100,9 +99,7 @@ func CCAttack(p *Nodes, counts *int, status *int) (aliveProxies *Nodes, err erro
 		return
 	case resp.StatusCode() < 500 && resp.StatusCode() > 0:
 		*status = resp.StatusCode()
-		if resp.StatusCode() != 403 {
-			aliveProxies = p
-		}
+		aliveProxies = p
 		if v, ok := buf["data"]; ok {
 			fmt.Printf("[%d] %d\n", *counts, resp.StatusCode())
 		} else if v, ok = buf["message"]; ok {
