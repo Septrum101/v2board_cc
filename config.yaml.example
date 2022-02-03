@@ -1,3 +1,4 @@
 v2BoardDomain: YOUR_DOMAIN
 originIP: https://YOUR_DOMAIN.COM
 connections: 128
+filterNode: false

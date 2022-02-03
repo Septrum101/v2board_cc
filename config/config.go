@@ -19,6 +19,7 @@ type CFG struct {
 	V2boardDomain string `yaml:"v2BoardDomain"`
 	OriginIP      string `yaml:"originIP"`
 	Connections   int    `yaml:"connections"`
+	FilterNode    bool   `yaml:"filterNode"`
 }
 
 var Cfg CFG

