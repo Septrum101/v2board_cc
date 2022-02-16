@@ -46,7 +46,7 @@ func main() {
 			for {
 				if current != nil {
 					fmt.Printf("Filter Processing: %.2f%%\n", float32(*current*100)/float32(len(PList)))
-					if *current == len(PList) {
+					if *current == len(PList)-1 {
 						break
 					}
 					time.Sleep(5 * time.Second)
