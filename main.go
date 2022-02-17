@@ -47,6 +47,7 @@ func main() {
 				if current != nil {
 					fmt.Printf("Filter Processing: %.2f%%\n", float32(*current*100)/float32(len(PList)))
 					if *current == len(PList)-1 {
+						fmt.Printf("Filter Nodes: %d\n", len(alivePlist))
 						break
 					}
 					time.Sleep(5 * time.Second)
@@ -74,7 +75,6 @@ func main() {
 				}
 			}
 			pool.Release()
-			fmt.Printf("Filter Nodes: %d", len(alivePlist))
 		}()
 	default:
 		alivePlist = PList
@@ -91,7 +91,7 @@ func main() {
 	go func() {
 		for {
 			switch {
-			case status == 502 && pool2.Cap() > 24:
+			case status >= 502 && pool2.Cap() > 24:
 				pool2.Tune(pool2.Cap() - 10)
 			case status <= 500 && status > 0 && pool2.Cap() < 3*config.Cfg.Connections:
 				pool2.Tune(pool2.Cap() + 30)
