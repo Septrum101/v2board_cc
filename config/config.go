@@ -61,6 +61,6 @@ func ParseProxies(cfg *RawConfig) (proxies map[string]C.Proxy, err error) {
 		}
 		proxies[proxy.Name()] = proxy
 	}
-	fmt.Printf("total nodes: %d\n", len(proxies))
+	fmt.Printf("total nodes: %d", len(proxies))
 	return
 }

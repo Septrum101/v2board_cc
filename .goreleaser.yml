@@ -11,9 +11,9 @@ builds:
       - linux
       - windows
       - darwin
-#    ldflags:
-#      - -X 'github.com/Dreamacro/clash/constant.Version={{ .Version }}'
-#      - -X 'github.com/Dreamacro/clash/constant.BuildTime={{ .Date }}'
+    #    ldflags:
+    #      - -X 'github.com/Dreamacro/clash/constant.Version={{ .Version }}'
+    #      - -X 'github.com/Dreamacro/clash/constant.BuildTime={{ .Date }}'
     flags:
       - -trimpath
 archives:
