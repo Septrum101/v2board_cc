@@ -40,7 +40,7 @@ func URLTest(p *Nodes) (aliveProxies Nodes, err error) {
 
 	resp, err := resty.New().
 		SetTransport(transport).
-		R().SetContext(ctx).Get(baseURL.String())
+		R().SetContext(ctx).Head(baseURL.String())
 
 	if resp.StatusCode() == 204 {
 		aliveProxies = *p
